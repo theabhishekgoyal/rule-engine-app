@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/styles.css">
+  <title>Rule Engine</title>
+</head>
+
+<body>
+  <h1>Rule Engine</h1>
+
+  <!-- Form to create a rule -->
+  <h2>Create a Rule</h2>
+  <form id="create-form">
+    <label for="rule_string">Enter Rule:</label>
+    <input type="text" name="rule_string" id="rule_string" required>
+    <button type="button" id="create-rule-btn">Create Rule</button>
+  </form>
+
+  <!-- Modal for displaying the rule data -->
+  <div id="ruleModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Rule Data</h2>
+      <pre id="ruleJsonData"></pre>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- Edit Rule Section -->
+  <h2>Edit Rule</h2>
+  <form id="edit-form">
+    <label for="editRuleId">Select Rule to Edit:</label>
+    <select id="editRuleId" name="editRuleId" required>
+      <option value="">-- Select a Rule --</option>
+    </select><br>
+
+    <label for="editRuleString">Edit Rule:</label>
+    <input type="text" id="editRuleString" name="editRuleString" required>
+    <button type="submit">Update Rule</button>
+  </form>
+
+  <hr>
+
+  <!-- Form to evaluate a rule -->
+  <h2>Evaluate Rule</h2>
+  <form id="evaluate-form">
+    <label for="ruleId">Select Rule:</label>
+    <select id="ruleId" name="ruleId" required>
+      <option value="">-- Select a Rule --</option>
+    </select><br>
+
+    <label for="age">Age:</label>
+    <input type="number" id="age" name="age"><br>
+
+    <label for="department">Department:</label>
+    <select id="department" name="department">
+      <option value="">-- Select a Department --</option>
+    </select><br>
+
+    <label for="salary">Salary:</label>
+    <input type="number" id="salary" name="salary"><br>
+
+    <label for="experience">Experience:</label>
+    <input type="number" id="experience" name="experience"><br>
+
+    <button type="submit">Evaluate</button>
+  </form>
+
+  <div id="result"></div>
+
+  <!-- Modal for displaying the rule data -->
+  <div id="ruleModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Rule Data</h2>
+      <pre id="ruleJsonData"></pre>
+    </div>
+  </div>
+
+  <script>
+    // Function to fetch all rules and populate the dropdown for selecting a rule
+    async function loadRules() {
+      try {
+        const response = await fetch('/rules/all');
+        const rules = await response.json();
+
+        const ruleDropdown = document.getElementById('ruleId');
+        const editRuleDropdown = document.getElementById('editRuleId');
+        ruleDropdown.innerHTML = ''; // Clear existing options
+        editRuleDropdown.innerHTML = ''; // Clear existing options
+
+        // Add default options
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '-- Select a Rule --';
+        ruleDropdown.appendChild(defaultOption);
+
+        const defaultEditOption = document.createElement('option');
+        defaultEditOption.value = '';
+        defaultEditOption.textContent = '-- Select a Rule --';
+        editRuleDropdown.appendChild(defaultEditOption);
+
+        // Populate both dropdowns with rules
+        rules.forEach(rule => {
+          const option = document.createElement('option');
+          option.value = rule._id; // MongoDB ID
+          option.textContent = rule.rule_string; // Display the rule string
+
+          const editOption = option.cloneNode(true); // Clone option for the edit dropdown
+          ruleDropdown.appendChild(option);
+          editRuleDropdown.appendChild(editOption);
+        });
+      } catch (err) {
+        console.error('Error loading rules:', err);
+      }
+    }
+
+    // Function to fetch departments from rules and populate the department dropdown
+    async function loadDepartments() {
+      try {
+        const response = await fetch('/rules/departments');
+        const departments = await response.json();
+
+        const departmentDropdown = document.getElementById('department');
+        departmentDropdown.innerHTML = ''; // Clear existing options
+
+        // Add default option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '-- Select a Department --';
+        departmentDropdown.appendChild(defaultOption);
+
+        // Populate the dropdown with departments
+        departments.forEach(dept => {
+          const option = document.createElement('option');
+          option.value = dept;
+          option.textContent = dept;
+          departmentDropdown.appendChild(option);
+        });
+      } catch (err) {
+        console.error('Error loading departments:', err);
+      }
+    }
+
+    // Call loadRules and loadDepartments functions to populate dropdowns when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      loadRules();
+      loadDepartments();
+    });
+
+    // Handle form submission for creating a rule
+    document.getElementById('create-rule-btn').addEventListener('click', async function () {
+      const ruleString = document.getElementById('rule_string').value;
+
+      if (!ruleString) {
+        alert('Please enter a rule.');
+        return;
+      }
+
+      // Create the rule in the database
+      try {
+        const response = await fetch('/rules/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rule_string: ruleString })
+        });
+
+        if (!response.ok) {
+          throw new Error('Error creating rule');
+        }
+
+        const ruleData = await response.json();
+
+        // Show the modal with the rule data
+        document.getElementById('ruleJsonData').textContent = JSON.stringify(ruleData, null, 2);
+        document.getElementById('ruleModal').style.display = 'block';
+
+        // Clear the input field
+        document.getElementById('rule_string').value = '';
+        loadRules();
+        loadDepartments();
+      } catch (err) {
+        console.error('Error creating rule:', err);
+        alert('Failed to create rule.');
+      }
+    });
+
+    // Handle close button for the modal
+    document.querySelector('.close').addEventListener('click', function () {
+      document.getElementById('ruleModal').style.display = 'none';
+    });
+
+    // Close the modal if the user clicks anywhere outside the modal
+    window.addEventListener('click', function (event) {
+      const modal = document.getElementById('ruleModal');
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+
+    // Handle form submission for editing a rule
+    document.getElementById('edit-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const editRuleId = document.getElementById('editRuleId').value;
+      const editRuleString = document.getElementById('editRuleString').value;
+
+      // Ensure the selected rule ID is valid
+      if (!editRuleId) {
+        alert('Please select a rule to edit.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/rules/update/${editRuleId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rule_string: editRuleString })
+        });
+
+        if (!response.ok) {
+          throw new Error('Error updating rule');
+        }
+
+        alert('Rule updated successfully.');
+        loadRules(); // Reload rules to reflect changes
+      } catch (err) {
+        console.error('Error updating rule:', err);
+        alert('Failed to update rule.');
+      }
+    });
+
+    // Handle form submission for rule evaluation
+    document.getElementById('evaluate-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      const ruleId = document.getElementById('ruleId').value;
+      const age = document.getElementById('age').value;
+      const department = document.getElementById('department').value;
+      const salary = document.getElementById('salary').value;
+      const experience = document.getElementById('experience').value;
+
+      // Ensure the selected rule ID is valid
+      if (!ruleId) {
+        alert('Please select a rule.');
+        return;
+      }
+
+      const userData = {
+        age: age ? Number(age) : null,
+        department,
+        salary: salary ? Number(salary) : null,
+        experience: experience ? Number(experience) : null,
+      };
+
+      try {
+        const response = await fetch('/rules/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ruleId, userData })
+        });
+
+        if (!response.ok) {
+          throw new Error('Error evaluating rule');
+        }
+
+        const result = await response.json();
+        document.getElementById('result').innerHTML = `Eligible: ${result.eligible ? 'Yes' : 'No'}`;
+      } catch (err) {
+        console.error('Error evaluating rule:', err);
+        document.getElementById('result').innerHTML = 'Error evaluating rule.';
+      }
+    });
+  </script>
+
+</body>
+
+</html>
