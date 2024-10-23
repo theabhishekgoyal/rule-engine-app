@@ -6,7 +6,7 @@ const ruleRoutes = require('./routes/ruleRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
+const mongouri = process.env.MONGO_URI;
 // Set view engine to EJS
 app.set('view engine', 'ejs');
 
@@ -16,7 +16,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 // MongoDB Connection
-mongoose.connect('mongodb+srv://agoyal0308:abhishekgoyal0308@cluster0.9dsrw.mongodb.net/', {
+mongoose.connect(mongouri, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
