@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 
 const ruleRoutes = require('./routes/ruleRoutes');
-
+require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 const mongouri = process.env.MONGO_URI;
